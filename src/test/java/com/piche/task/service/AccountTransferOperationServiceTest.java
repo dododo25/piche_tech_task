@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.util.IdGenerator;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +57,27 @@ class AccountTransferOperationServiceTest {
     }
 
     @Test
+    void testFindAllBySenderIdAndDateSpanShouldReturnObject() {
+        AccountTransferOperation o1 = mock();
+        AccountTransferOperation o2 = mock();
+
+        LocalDateTime from = LocalDate.of(2024, 1, 1).atStartOfDay();
+        LocalDateTime to = LocalDate.of(2024, 1, 3).atStartOfDay();
+
+        when(repository.findAllBySenderIdAndDateSpan(1L, from, to))
+                .thenReturn(Arrays.asList(o1, o2));
+        when(o1.getId()).thenReturn(1L);
+        when(o2.getId()).thenReturn(2L);
+
+        List<AccountTransferOperation> result =
+                service.findAllBySenderIdAndDateSpan(1L, from.toLocalDate(), to.toLocalDate());
+
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(2L, result.get(1).getId());
+    }
+
+    @Test
     void testFindAllByReceiverIdShouldReturnObject() {
         AccountTransferOperation o1 = mock();
         AccountTransferOperation o2 = mock();
@@ -65,6 +88,27 @@ class AccountTransferOperationServiceTest {
         when(o2.getId()).thenReturn(2L);
 
         List<AccountTransferOperation> result = service.findAllByReceiverId(1L);
+
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(2L, result.get(1).getId());
+    }
+
+    @Test
+    void testFindAllByReceiverIdAndDateSpanShouldReturnObject() {
+        AccountTransferOperation o1 = mock();
+        AccountTransferOperation o2 = mock();
+
+        LocalDateTime from = LocalDate.of(2024, 1, 1).atStartOfDay();
+        LocalDateTime to = LocalDate.of(2024, 1, 3).atStartOfDay();
+
+        when(repository.findAllByReceiverIdAndDateSpan(1L, from, to))
+                .thenReturn(Arrays.asList(o1, o2));
+        when(o1.getId()).thenReturn(1L);
+        when(o2.getId()).thenReturn(2L);
+
+        List<AccountTransferOperation> result =
+                service.findAllByReceiverIdAndDateSpan(1L, from.toLocalDate(), to.toLocalDate());
 
         assertEquals(2, result.size());
         assertEquals(1L, result.get(0).getId());

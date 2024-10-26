@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.util.IdGenerator;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +50,27 @@ class AccountDepositOperationServiceTest {
         when(o2.getId()).thenReturn(2L);
 
         List<AccountDepositOperation> result = service.findAllByAccountId(1L);
+
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(2L, result.get(1).getId());
+    }
+
+    @Test
+    void testFindAllByAccountIdAndDateSpanShouldReturnObject() {
+        AccountDepositOperation o1 = mock();
+        AccountDepositOperation o2 = mock();
+
+        LocalDateTime from = LocalDate.of(2024, 1, 1).atStartOfDay();
+        LocalDateTime to = LocalDate.of(2024, 1, 3).atStartOfDay();
+
+        when(repository.findAllByAccountIdAndDateSpan(1L, from, to))
+                .thenReturn(Arrays.asList(o1, o2));
+        when(o1.getId()).thenReturn(1L);
+        when(o2.getId()).thenReturn(2L);
+
+        List<AccountDepositOperation> result =
+                service.findAllByAccountIdAndDateSpan(1L, from.toLocalDate(), to.toLocalDate());
 
         assertEquals(2, result.size());
         assertEquals(1L, result.get(0).getId());

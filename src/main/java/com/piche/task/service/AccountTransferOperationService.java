@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.IdGenerator;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,8 +28,16 @@ public class AccountTransferOperationService {
         return repository.findAllBySenderId(id);
     }
 
+    public List<AccountTransferOperation> findAllBySenderIdAndDateSpan(Long id, LocalDate from, LocalDate to) {
+        return repository.findAllBySenderIdAndDateSpan(id, from.atStartOfDay(), to.atStartOfDay());
+    }
+
     public List<AccountTransferOperation> findAllByReceiverId(Long id) {
         return repository.findAllByReceiverId(id);
+    }
+
+    public List<AccountTransferOperation> findAllByReceiverIdAndDateSpan(Long id, LocalDate from, LocalDate to) {
+        return repository.findAllByReceiverIdAndDateSpan(id, from.atStartOfDay(), to.atStartOfDay());
     }
 
     @Transactional

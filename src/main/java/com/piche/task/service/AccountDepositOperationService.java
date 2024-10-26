@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.IdGenerator;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,6 +26,10 @@ public class AccountDepositOperationService {
 
     public List<AccountDepositOperation> findAllByAccountId(Long id) {
         return repository.findAllByAccountId(id);
+    }
+
+    public List<AccountDepositOperation> findAllByAccountIdAndDateSpan(Long id, LocalDate from, LocalDate to) {
+        return repository.findAllByAccountIdAndDateSpan(id, from.atStartOfDay(), to.atStartOfDay());
     }
 
     @Transactional
