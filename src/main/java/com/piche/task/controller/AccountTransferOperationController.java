@@ -1,11 +1,11 @@
 package com.piche.task.controller;
 
 import com.piche.task.controller.dto.AccountOperationDTO;
+import com.piche.task.exception.BadRequestException;
 import com.piche.task.model.Account;
 import com.piche.task.service.AccountService;
 import com.piche.task.service.AccountTransferOperationService;
 import lombok.AllArgsConstructor;
-import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,9 +24,7 @@ public class AccountTransferOperationController {
     @GetMapping(value = "account/{id}/operation/transfer")
     public ResponseEntity<Object> getAllOperations(@PathVariable("id") Long id) {
         if (!accountService.existsById(id)) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", String.format("Unknown account with id %d", id))
-                    .toMap());
+            throw new BadRequestException(String.format("Unknown account with id %d", id));
         }
 
         return ResponseEntity.ok(operationService.findAllBySenderId(id));
@@ -39,27 +37,19 @@ public class AccountTransferOperationController {
         Account sender = accountService.findById(senderId);
 
         if (sender == null) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", String.format("Unknown sender account with id %d", senderId))
-                    .toMap());
+            throw new BadRequestException(String.format("Unknown sender account with id %d", senderId));
         }
 
         if (!accountService.existsById(receiverId)) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", String.format("Unknown receiver account with id %d", receiverId))
-                    .toMap());
+            throw new BadRequestException(String.format("Unknown receiver account with id %d", receiverId));
         }
 
         if (operation.getDeposit() <= 0) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", "Can`t add operation: deposit value 0")
-                    .toMap());
+            throw new BadRequestException("Can`t add operation: deposit value 0");
         }
 
         if (sender.getBalance() - operation.getDeposit() < 0) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", "Can`t add operation: account balance can`t become negative")
-                    .toMap());
+            throw new BadRequestException("Can`t add operation: account balance can`t become negative");
         }
 
         return ResponseEntity.ok(operationService.save(senderId, receiverId, operation.getDeposit()));

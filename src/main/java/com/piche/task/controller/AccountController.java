@@ -2,6 +2,7 @@ package com.piche.task.controller;
 
 import com.piche.task.controller.dto.AccountDTO;
 import com.piche.task.encoder.PasswordEncoder;
+import com.piche.task.exception.BadRequestException;
 import com.piche.task.model.Account;
 import com.piche.task.model.AccountDepositOperation;
 import com.piche.task.model.AccountTransferOperation;
@@ -51,9 +52,7 @@ public class AccountController {
         Account account = accountService.findById(id);
 
         if (account == null) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", String.format("Unknown account with id %d", id))
-                    .toMap());
+            throw new BadRequestException(String.format("Unknown account with id %d", id));
         }
 
         return ResponseEntity.ok(account);
@@ -64,9 +63,7 @@ public class AccountController {
         Account existing = accountService.findByName(account.getName());
 
         if (existing != null) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", String.format("Account with name '%s' already exists", existing.getName()))
-                    .toMap());
+            throw new BadRequestException(String.format("Account with name '%s' already exists", existing.getName()));
         }
 
         Account saved = accountService.save(Account.builder()
@@ -112,57 +109,51 @@ public class AccountController {
                                                             Supplier<List<AccountDepositOperation>> depositsSupplier,
                                                             Supplier<List<AccountTransferOperation>> firstTransfersSupplier,
                                                             Supplier<List<AccountTransferOperation>> secondTransfersSupplier) {
-        try {
-            invalidateAccount(id);
+        invalidateAccount(id);
 
-            Map<LocalDateTime, List<Object>> result = prepareTreeMap(sort);
+        Map<LocalDateTime, List<Object>> result = prepareTreeMap(sort);
 
-            depositsSupplier.get().forEach(operation -> {
-                LocalDateTime time = operation.getUpdatedAt();
+        depositsSupplier.get().forEach(operation -> {
+            LocalDateTime time = operation.getUpdatedAt();
 
-                result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
-                        .put("id", operation.getId())
-                        .put("type", "deposit")
-                        .put("deposit", operation.getDeposit())
-                        .put("updatedAt", operation.getUpdatedAt())
-                        .toMap());
-            });
-            firstTransfersSupplier.get().forEach(operation -> {
-                LocalDateTime time = operation.getUpdatedAt();
-
-                result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
-                        .put("id", operation.getId())
-                        .put("type", "transfer")
-                        .put("role", "sender")
-                        .put("deposit", operation.getDeposit() * -1)
-                        .put("updatedAt", operation.getUpdatedAt())
-                        .toMap());
-            });
-            secondTransfersSupplier.get().forEach(operation -> {
-                LocalDateTime time = operation.getUpdatedAt();
-
-                result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
-                        .put("id", operation.getId())
-                        .put("type", "transfer")
-                        .put("role", "receiver")
-                        .put("deposit", operation.getDeposit())
-                        .put("updatedAt", operation.getUpdatedAt())
-                        .toMap());
-            });
-
-            return ResponseEntity.ok(result.values().stream().flatMap(Collection::stream).toList());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new JSONObject()
-                    .put("message", e.getMessage())
+            result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
+                    .put("id", operation.getId())
+                    .put("type", "deposit")
+                    .put("deposit", operation.getDeposit())
+                    .put("updatedAt", operation.getUpdatedAt())
                     .toMap());
-        }
+        });
+        firstTransfersSupplier.get().forEach(operation -> {
+            LocalDateTime time = operation.getUpdatedAt();
+
+            result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
+                    .put("id", operation.getId())
+                    .put("type", "transfer")
+                    .put("role", "sender")
+                    .put("deposit", operation.getDeposit() * -1)
+                    .put("updatedAt", operation.getUpdatedAt())
+                    .toMap());
+        });
+        secondTransfersSupplier.get().forEach(operation -> {
+            LocalDateTime time = operation.getUpdatedAt();
+
+            result.computeIfAbsent(time, key -> new ArrayList<>()).add(new JSONObject()
+                    .put("id", operation.getId())
+                    .put("type", "transfer")
+                    .put("role", "receiver")
+                    .put("deposit", operation.getDeposit())
+                    .put("updatedAt", operation.getUpdatedAt())
+                    .toMap());
+        });
+
+        return ResponseEntity.ok(result.values().stream().flatMap(Collection::stream).toList());
     }
 
     private void invalidateAccount(Long id) {
         Account account = accountService.findById(id);
 
         if (account == null) {
-            throw new IllegalArgumentException(String.format("Unknown account with id %d", id));
+            throw new BadRequestException(String.format("Unknown account with id %d", id));
         }
     }
 
@@ -174,7 +165,7 @@ public class AccountController {
         return switch (sort.toLowerCase()) {
             case "asc" -> new TreeMap<>(Comparator.naturalOrder());
             case "desc" -> new TreeMap<>(Comparator.reverseOrder());
-            default -> throw new IllegalArgumentException(String.format("Unknown sort type '%s'", sort));
+            default -> throw new BadRequestException(String.format("Unknown sort type '%s'", sort));
         };
     }
 }
