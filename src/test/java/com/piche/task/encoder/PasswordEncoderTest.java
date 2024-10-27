@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.security.NoSuchAlgorithmException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class PasswordEncoderTest {
@@ -18,6 +19,9 @@ class PasswordEncoderTest {
 
     @Test
     void testEncodeShouldReturnObject() {
-        assertNotNull(encoder.encode("PaSSw0rD!"));
+        String hash = encoder.encode("PaSSw0rD!");
+
+        assertNotNull(hash);
+        assertEquals(64, hash.length());
     }
 }
