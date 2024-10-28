@@ -210,6 +210,67 @@ class AccountControllerTest {
     }
 
     @Test
+    void testGetAllAccountOperationWhenSortIsDescShouldReturnList() throws Exception {
+        Account a1 = Account.builder()
+                .id(1001L)
+                .name("Alice")
+                .passwordHash("password_hash1")
+                .build();
+
+        Account a2 = Account.builder()
+                .id(1002L)
+                .name("Bob")
+                .passwordHash("password_hash2")
+                .build();
+
+        AccountDepositOperation depositOperation = AccountDepositOperation.builder()
+                .id(1101L)
+                .account(a1)
+                .deposit(250000.0)
+                .updatedAt(LocalDateTime.of(2024, 1, 1, 0, 0, 0))
+                .build();
+
+        AccountTransferOperation transferOperation1 = AccountTransferOperation.builder()
+                .id(1201L)
+                .sender(a1)
+                .receiver(a2)
+                .deposit(25000.0)
+                .updatedAt(LocalDateTime.of(2024, 1, 2, 0, 0, 0))
+                .build();
+
+        AccountTransferOperation transferOperation2 = AccountTransferOperation.builder()
+                .id(1202L)
+                .sender(a2)
+                .receiver(a1)
+                .deposit(125000.0)
+                .updatedAt(LocalDateTime.of(2024, 1, 3, 0, 0, 0))
+                .build();
+
+        when(accountService.findById(1001L)).thenReturn(a1);
+        when(accountDepositOperationService.findAllByAccountId(1001L))
+                .thenReturn(Collections.singletonList(depositOperation));
+        when(accountTransferOperationService.findAllBySenderId(1001L))
+                .thenReturn(Collections.singletonList(transferOperation1));
+        when(accountTransferOperationService.findAllByReceiverId(1001L))
+                .thenReturn(Collections.singletonList(transferOperation2));
+
+        mockMvc.perform(get("/account/1001/operation/all?sort=desc"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].id").value(1202L))
+                .andExpect(jsonPath("$[0].type").value("transfer"))
+                .andExpect(jsonPath("$[0].role").value("receiver"))
+                .andExpect(jsonPath("$[0].deposit").value(125000.0))
+                .andExpect(jsonPath("$[1].id").value(1201L))
+                .andExpect(jsonPath("$[1].type").value("transfer"))
+                .andExpect(jsonPath("$[1].role").value("sender"))
+                .andExpect(jsonPath("$[1].deposit").value(-25000.0))
+                .andExpect(jsonPath("$[2].id").value(1101L))
+                .andExpect(jsonPath("$[2].type").value("deposit"));
+    }
+
+    @Test
     void testGetAllAccountOperationsByDateSpanShouldReturnList() throws Exception {
         Account account1 = Account.builder()
                 .id(1001L)
