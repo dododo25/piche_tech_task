@@ -97,7 +97,32 @@ class AccountControllerTest {
     }
 
     @Test
-    void testAddAccountShouldReturnObject() throws Exception {
+    void testGetAccountByNameShouldReturnObject() throws Exception {
+        Account account = Account.builder()
+                .id(1L)
+                .name("Alice")
+                .passwordHash("password_hash")
+                .build();
+
+        when(accountService.findByName("Alice")).thenReturn(account);
+
+        mockMvc.perform(get("/account?name=Alice"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id").value(account.getId()))
+                .andExpect(jsonPath("$.name").value(account.getName()))
+                .andExpect(jsonPath("$.passwordHash").value(account.getPasswordHash()));
+    }
+
+    @Test
+    void testGetAccountByNameWhenAccountDoesNotExistsShouldReturnObject() throws Exception {
+        mockMvc.perform(get("/account?name=Alice"))
+                .andExpect(status().is4xxClientError())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE));
+    }
+
+    @Test
+    void testSaveAccountShouldReturnObject() throws Exception {
         JSONObject json = new JSONObject()
                 .put("name", "Alice")
                 .put("password", "paSSw0rD");
@@ -143,9 +168,49 @@ class AccountControllerTest {
     }
 
     @Test
+    void testValidateAccountShouldReturnObject() throws Exception {
+        JSONObject json = new JSONObject()
+                .put("name", "Alice")
+                .put("password", "paSSw0rD");
+
+        Account expected = Account.builder()
+                .id(1L)
+                .name(json.getString("name"))
+                .passwordHash("c5f3e5e29ed62f801a751f2975a62d96114eff72f4ec031bb426a196caaca061")
+                .balance(0.0)
+                .build();
+
+        when(accountService.findByName("Alice")).thenReturn(expected);
+
+        mockMvc.perform(post("/account/validate").contentType(MediaType.APPLICATION_JSON_VALUE).content(json.toString()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testValidateAccountWhenPasswordIsWrongShouldReturnObject() throws Exception {
+        JSONObject json = new JSONObject()
+                .put("name", "Alice")
+                .put("password", "password");
+
+        Account expected = Account.builder()
+                .id(1L)
+                .name(json.getString("name"))
+                .passwordHash("c5f3e5e29ed62f801a751f2975a62d96114eff72f4ec031bb426a196caaca061")
+                .balance(0.0)
+                .build();
+
+        when(accountService.findByName("Alice")).thenReturn(expected);
+
+        mockMvc.perform(post("/account/validate").contentType(MediaType.APPLICATION_JSON_VALUE).content(json.toString()))
+                .andExpect(status().is4xxClientError())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.message").value("Wrong password"));
+    }
+
+    @Test
     void testDeleteAccountShouldDoneWell() throws Exception {
         mockMvc.perform(delete("/account/1"))
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().isOk());
     }
 
     @Test

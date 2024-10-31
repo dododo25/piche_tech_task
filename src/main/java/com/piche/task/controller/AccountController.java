@@ -58,6 +58,17 @@ public class AccountController {
         return ResponseEntity.ok(account);
     }
 
+    @GetMapping(value = "account", params = "name")
+    public ResponseEntity<Object> getAccountByName(@RequestParam("name") String name) {
+        Account account = accountService.findByName(name);
+
+        if (account == null) {
+            throw new BadRequestException(String.format("Unknown account with name '%s'", name));
+        }
+
+        return ResponseEntity.ok(account);
+    }
+
     @PostMapping(value = "account")
     public ResponseEntity<Object> saveAccount(@RequestBody AccountDTO account) {
         Account existing = accountService.findByName(account.getName());
@@ -73,6 +84,21 @@ public class AccountController {
                 .build());
 
         return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping(value = "account/validate")
+    public void validateAccount(@RequestBody AccountDTO account) {
+        Account existing = accountService.findByName(account.getName());
+
+        if (existing == null) {
+            throw new BadRequestException(String.format("Unknown account with name '%s'", account.getName()));
+        }
+
+        String passwordHash = encoder.encode(account.getPassword());
+
+        if (!existing.getPasswordHash().equals(passwordHash)) {
+            throw new BadRequestException("Wrong password");
+        }
     }
 
     @DeleteMapping(value = "account/{id}")
