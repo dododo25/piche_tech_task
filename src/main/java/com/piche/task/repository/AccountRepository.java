@@ -10,6 +10,9 @@ import java.util.Optional;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Long> {
 
+    @Query("SELECT count(a) > 0 FROM Account a WHERE a.name = ?1")
+    boolean existsByName(String name);
+
     @Query("SELECT a FROM Account a WHERE a.name = ?1")
     Optional<Account> findByName(String name);
 }

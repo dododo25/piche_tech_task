@@ -1,7 +1,12 @@
 package com.piche.task.service;
 
+import com.piche.task.dto.AccountOperationDTO;
+import com.piche.task.exception.BadRequestException;
+import com.piche.task.exception.UnknownAccountIdException;
+import com.piche.task.model.Account;
 import com.piche.task.model.AccountDepositOperation;
 import com.piche.task.repository.AccountDepositOperationRepository;
+import com.piche.task.repository.AccountRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.AllArgsConstructor;
@@ -17,7 +22,9 @@ import java.util.List;
 @AllArgsConstructor
 public class AccountDepositOperationService {
 
-    private final AccountDepositOperationRepository repository;
+    private final AccountRepository accountRepository;
+
+    private final AccountDepositOperationRepository depositOperationRepository;
 
     private final IdGenerator generator;
 
@@ -25,15 +32,34 @@ public class AccountDepositOperationService {
     private final EntityManager manager;
 
     public List<AccountDepositOperation> findAllByAccountId(Long id) {
-        return repository.findAllByAccountId(id);
+        if (!accountRepository.existsById(id)) {
+            throw new UnknownAccountIdException(id);
+        }
+
+        return depositOperationRepository.findAllByAccountId(id);
     }
 
     public List<AccountDepositOperation> findAllByAccountIdAndDateSpan(Long id, LocalDate from, LocalDate to) {
-        return repository.findAllByAccountIdAndDateSpan(id, from.atStartOfDay(), to.atStartOfDay());
+        if (!accountRepository.existsById(id)) {
+            throw new UnknownAccountIdException(id);
+        }
+
+        return depositOperationRepository.findAllByAccountIdAndDateSpan(id, from.atStartOfDay(), to.atStartOfDay());
     }
 
     @Transactional
-    public AccountDepositOperation save(long accountId, double deposit) {
+    public AccountDepositOperation save(long accountId, AccountOperationDTO operation) {
+        Account account = accountRepository.findById(accountId).orElseThrow(() ->
+                new UnknownAccountIdException(accountId));
+
+        if (operation.getDeposit() == 0) {
+            throw new BadRequestException("Can`t add operation: deposit value 0");
+        }
+
+        if (account.getBalance() + operation.getDeposit() < 0) {
+            throw new BadRequestException("Can`t add operation: account balance can`t become negative");
+        }
+
         long id = generator.generateId().getLeastSignificantBits();
 
         manager.createNativeQuery(
@@ -42,16 +68,16 @@ public class AccountDepositOperationService {
                 .setParameter(1, id)
                 .setParameter(2, accountId)
                 .setParameter(3, LocalDateTime.now())
-                .setParameter(4, deposit)
+                .setParameter(4, operation.getDeposit())
                 .executeUpdate();
         manager.createNativeQuery("UPDATE account a SET a.balance = a.balance + ? WHERE a.id = ?")
-                .setParameter(1, deposit)
+                .setParameter(1, operation.getDeposit())
                 .setParameter(2, accountId)
                 .executeUpdate();
 
         manager.flush();
         manager.clear();
 
-        return repository.findById(id).orElseThrow(IllegalArgumentException::new);
+        return depositOperationRepository.findById(id).orElseThrow(IllegalArgumentException::new);
     }
 }

@@ -1,4 +1,4 @@
-package com.piche.task.controller.dto;
+package com.piche.task.dto;
 
 import lombok.Data;
 

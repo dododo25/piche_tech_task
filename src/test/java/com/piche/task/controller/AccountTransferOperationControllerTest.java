@@ -2,10 +2,7 @@ package com.piche.task.controller;
 
 import com.piche.task.model.Account;
 import com.piche.task.model.AccountTransferOperation;
-import com.piche.task.service.AccountService;
 import com.piche.task.service.AccountTransferOperationService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,21 +23,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {AccountTransferOperationController.class, EntityManager.class,
-        EntityManagerFactory.class})
+@WebMvcTest(controllers = {AccountTransferOperationController.class})
 class AccountTransferOperationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockBean
-    private static EntityManagerFactory factory;
-
-    @MockBean
-    private static EntityManager manager;
-
-    @MockBean
-    private AccountService accountService;
 
     @MockBean
     private AccountTransferOperationService accountTransferOperationService;
@@ -65,7 +53,6 @@ class AccountTransferOperationControllerTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(accountService.existsById(1L)).thenReturn(true);
         when(accountTransferOperationService.findAllBySenderId(1L)).thenReturn(Arrays.asList(o1, o2));
 
         mockMvc.perform(get("/account/1/operation/transfer"))
@@ -77,22 +64,8 @@ class AccountTransferOperationControllerTest {
     }
 
     @Test
-    void testGetAllOperationsWhenAccountDoesNotExistsShouldReturnObject() throws Exception {
-        when(accountService.existsById(1L)).thenReturn(true);
-
-        mockMvc.perform(get("/account/2/operation/transfer"))
-                .andExpect(status().is4xxClientError())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.message").value("Unknown account with id 2"));
-    }
-
-    @Test
     void testSaveOperationShouldReturnObject() throws Exception {
-        Account mockedAccount = mock();
-
-        when(mockedAccount.getBalance()).thenReturn(500000.0);
-        when(accountService.findById(1L)).thenReturn(mockedAccount);
-        when(accountService.existsById(2L)).thenReturn(true);
+        when(accountTransferOperationService.save(any(long.class), any(long.class), any())).thenReturn(mock());
 
         mockMvc.perform(post("/account/1/operation/transfer/2")
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -100,63 +73,5 @@ class AccountTransferOperationControllerTest {
                                 .put("deposit", 250000)
                                 .toString()))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void testSaveOperationWhenSenderAccountDoesNotExistsShouldReturnObject() throws Exception {
-        mockMvc.perform(post("/account/1/operation/transfer/2")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(new JSONObject()
-                                .put("deposit", 250000)
-                                .toString()))
-                .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.message").value("Unknown sender account with id 1"));
-    }
-
-    @Test
-    void testSaveOperationWhenReceiverAccountDoesNotExistsShouldReturnObject() throws Exception {
-        when(accountService.findById(1L)).thenReturn(mock());
-
-        mockMvc.perform(post("/account/1/operation/transfer/2")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(new JSONObject()
-                                .put("deposit", 250000)
-                                .toString()))
-                .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.message").value("Unknown receiver account with id 2"));
-    }
-
-    @Test
-    void testSaveOperationWhenDepositValueIsZeroShouldReturnObject() throws Exception {
-        Account mockedAccount = mock();
-
-        when(mockedAccount.getBalance()).thenReturn(100000.0);
-        when(accountService.findById(1L)).thenReturn(mockedAccount);
-        when(accountService.existsById(2L)).thenReturn(true);
-
-        mockMvc.perform(post("/account/1/operation/transfer/2")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(new JSONObject()
-                                .put("deposit", 0)
-                                .toString()))
-                .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.message").value("Can`t add operation: deposit value 0"));
-    }
-
-    @Test
-    void testSaveOperationWhenNewBalanceIsNegativeShouldReturnObject() throws Exception {
-        Account mockedAccount = mock();
-
-        when(mockedAccount.getBalance()).thenReturn(100000.0);
-        when(accountService.findById(1L)).thenReturn(mockedAccount);
-        when(accountService.existsById(2L)).thenReturn(true);
-
-        mockMvc.perform(post("/account/1/operation/transfer/2")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(new JSONObject()
-                                .put("deposit", 250000)
-                                .toString()))
-                .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.message").value("Can`t add operation: account balance can`t become negative"));
     }
 }
